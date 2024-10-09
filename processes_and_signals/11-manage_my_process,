@@ -1,32 +1,61 @@
 #!/usr/bin/env bash
-#Manage my process
+# 11-manage_my_process init script
+# Manages the manage_my_process script with start, stop, and restart options
 
+PID_FILE="/var/run/my_process.pid"
+PROCESS_SCRIPT="./manage_my_process"  # Adjust the path to manage_my_process if needed
 
-start () {
-    ./manage_my_process &
-    echo $! > /var/run/my_process.pid
-    echo "manage_my_process started"               
+start() {
+    if [ -f "$PID_FILE" ]; then
+        echo "manage_my_process is already running."
+    else
+        # Start manage_my_process in the background and save its PID
+        $PROCESS_SCRIPT &  # Run the process without invoking bash
+        echo $! > "$PID_FILE"
+        echo "manage_my_process started"
+    fi
 }
 
-stop () {
-    pkill -f "./manage_my_process"
-    rm -rf /var/run/my_process.pid
-    echo "manage_my_process stopped"               
+stop() {
+    if [ -f "$PID_FILE" ]; then
+        # Kill the process and remove the PID file
+        kill "$(cat $PID_FILE)"
+        rm -f "$PID_FILE"
+        echo "manage_my_process stopped"  # Only display "stopped"
+    else
+        echo "manage_my_process is not running."
+    fi
 }
 
-restart () {
-    pkill -f "./manage_my_process"
-    rm -rf /var/run/my_process.pid
-    ./manage_my_process &
-    echo $! >> /var/run/my_process.pid
-    echo "manage_my_process restarted"             
+restart() {
+    if [ -f "$PID_FILE" ]; then
+        kill "$(cat $PID_FILE)"
+        rm -f "$PID_FILE"
+    fi
+    # Restart the process
+    $PROCESS_SCRIPT &
+    echo $! > "$PID_FILE"
+    echo "manage_my_process restarted"
 }
+
+# Display usage message when no or invalid argument is provided
+usage() {
+    echo "Usage: manage_my_process {start|stop|restart}"
+    exit 1
+}
+
+# Main script logic to handle arguments
 case "$1" in
-  start) start ;;
-  stop)  stop;;
-  restart) restart;;
-  *) echo "Usage: manage_my_process {start|stop|r\
-estart}"                                           
-
-      ;;
-esaci
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        usage
+        ;;
+esac
